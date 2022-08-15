@@ -1,22 +1,18 @@
 import React, { useEffect, useState } from "react";
 import Navbar from "./components/Navbar/Navbar";
 import "./App.css";
-import "bootstrap/dist/js/bootstrap.min.js";
 import "bootstrap/dist/css/bootstrap.min.css";
-
+import Swal from "sweetalert2";
 import Title from "./components/Title/Title";
 
 
 function App() {
-  
-  
-
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [telefone, setTelefone] = useState("");
   const [tableContatos, setTableContatos] = useState();
-  
-
+  const [alterarContacto, setalterarContacto] = useState();
+ 
 
 
   const handleSubmit = async (event) => {
@@ -28,56 +24,79 @@ function App() {
       telefone: telefone,
     };
 
-    const response = await fetch('http://localhost:4000/contatos/', {
+    
+    
+    const response = await fetch("http://localhost:4000/contatos/", {
       method: "POST",
       body: JSON.stringify(data),
       headers: { "Content-Type": "application/json; charset=UTF-8" },
     });
 
-    
     if (response.ok) {
-      console.log("oks", response.ok); 
+      Swal.fire("Seu Contato foi salvo com sucesso");
       listarContactos();
-    }else console.log("error", response);
-  };
-
-  function listarContactos() {
-   fetch('http://localhost:4000/contatos')
-   .then((response) => response.json())
-   .then(data => setTableContatos(data));
-  };
-
- useEffect(() => {
-    listarContactos();
-},[]);
-
- console.log("Listar Contatos", tableContatos);
-
-  const handleRemoveContact = async (contatoId) => {
-    const response = await fetch('http://localhost:4000/contatos/'+ contatoId,
-      {
-        method: "DELETE",
-      });
-    if (response.ok) {
-      console.log("Deletado com sucesso");
-      listarContactos();
+    } else {
+      Swal.fire("ERROR", response);
     }
-    
+  };
+  function listarContactos() {
+    fetch("http://localhost:4000/contatos")
+      .then((response) => response.json())
+      .then((data) => setTableContatos(data));
   }
 
-  const handleEditarContact = async (contatoId) => {
-    const response = await fetch('http://localhost:4000/contatos/' + contatoId,
+  useEffect(() => {
+    listarContactos();
+  }, []);
+
+  console.log("Listar Contatos", tableContatos);
+
+  const RemoveContact = async (contatoId) => {
+    const response = await fetch(
+      "http://localhost:4000/contatos/" + contatoId,
       {
-        method: "PUT",
+        method: "DELETE",
       }
     );
     if (response.ok) {
-      console.log("EDITAR com sucesso");
+      Swal.fire(" Seu contato foi deletado ");
       listarContactos();
     }
   };
 
+  const EditarContact = async () => {
+    const contatoId = alterarContacto;
+    const response = await fetch(
+      `http://localhost:4000/contatos/${contatoId}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+          nome: nome,
+          email: email,
+          telefone: telefone,
+        }),
+        headers: { "Content-Type": "application/json; charset=utf-8" },
+      }
+    );
+    if (response.ok) {
+      console.log("ok", response.ok);
+      setalterarContacto(undefined);
+    }
+  };
 
+  const onContactos = (contatoId) => {
+    fetch(`http://localhost:4000/contatos/${contatoId}`)
+      .then((response) => response.json())
+      .then((data) => {
+        console.log("retorno doalte", data);
+        setalterarContacto(contatoId);
+        setNome(data.nome);
+        setEmail(data.email);
+        setTelefone(data.telefone);
+      });
+  };
+
+  
 
   return (
     <>
@@ -86,7 +105,10 @@ function App() {
 
         <Title />
 
-        <form onSubmit={handleSubmit} className="formContainer">
+        <form
+          onSubmit={alterarContacto ? EditarContact : handleSubmit}
+          className="formContainer"
+        >
           <div>
             <label>Nome</label>
             <input
@@ -115,13 +137,13 @@ function App() {
           </div>
 
           <div>
-            <button type="submit" className="btn btn-primary">
-              Adicionar
+            <button type="submit" className="btn btn-dark btn-primary">
+              {alterarContacto ? "Editar" : "Adicionar"}
             </button>
           </div>
         </form>
-         
-         <div>
+
+        <div>
           <table className="table table">
             <thead>
               <tr>
@@ -130,39 +152,36 @@ function App() {
                 <th>Email</th>
                 <th>Telefone</th>
               </tr>
-             
             </thead>
             <tbody>
-              
-              {tableContatos?.map((contacto)=> {
+              {tableContatos?.map((contacto) => {
                 return (
                   <tr key={contacto.id}>
-                    
                     <td>{contacto.id}</td>
                     <td>{contacto.nome}</td>
                     <td>{contacto.email}</td>
                     <td>{contacto.telefone}</td>
-                    
-                      <td> 
+
+                    <td>
                       <button
-                        onClick={() => handleEditarContact(contacto.id)}
-                        className="btn btn-primary">
+                        onClick={() => onContactos(contacto.id)}
+                        className="btn-button"
+                      >
                         Editar
                       </button>
 
                       <button
-                        onClick={() => handleRemoveContact(contacto.id)}
-                        className="btn btn-primary">
+                        onClick={() => RemoveContact(contacto.id)}
+                        className="btn-buttonTwo"
+                      >
                         Excluir
                       </button>
-              
-                      </td>
+                    </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
-
         </div>
       </div>
     </>
